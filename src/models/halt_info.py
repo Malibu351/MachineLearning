@@ -1,81 +1,34 @@
 """
-停牌信息数据模型
+停牌信息数据模型 - 简化版
 """
 
 from datetime import datetime
-from typing import Optional, List
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Float
-from sqlalchemy.ext.declarative import declarative_base
-from pydantic import BaseModel, Field
-
-Base = declarative_base()
+from typing import Optional
+from dataclasses import dataclass
 
 
-class HaltInfo(Base):
-    """停牌信息数据库模型"""
-    __tablename__ = 'halt_info'
+@dataclass
+class HaltInfo:
+    """停牌信息数据类"""
+    market: str              # 股市 (如: 美股、港股、A股、日股、欧股)
+    fetch_time: datetime     # 信息获取时间
+    symbol: str              # 股票代码
+    company_name: str        # 股票信息（公司名称）
+    halt_date: datetime      # 停牌日期
+    resume_date: Optional[datetime] = None  # 复牌日期（可选）
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    market = Column(String(10), nullable=False, index=True, comment='市场代码')
-    symbol = Column(String(20), nullable=False, index=True, comment='股票代码')
-    company_name = Column(String(200), comment='公司名称')
-    halt_type = Column(String(50), comment='停牌类型')
-    halt_reason = Column(Text, comment='停牌原因')
-    halt_time = Column(DateTime, nullable=False, index=True, comment='停牌时间')
-    resume_time = Column(DateTime, comment='恢复交易时间')
-    price = Column(Float, comment='停牌前价格')
-    volume = Column(Integer, comment='停牌前成交量')
-    source = Column(String(100), comment='数据来源')
-    url = Column(String(500), comment='原始链接')
-    created_at = Column(DateTime, default=datetime.utcnow, comment='创建时间')
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment='更新时间')
-    is_active = Column(Boolean, default=True, comment='是否有效')
-
-
-class HaltInfoCreate(BaseModel):
-    """创建停牌信息的请求模型"""
-    market: str = Field(..., description='市场代码')
-    symbol: str = Field(..., description='股票代码')
-    company_name: Optional[str] = Field(None, description='公司名称')
-    halt_type: Optional[str] = Field(None, description='停牌类型')
-    halt_reason: Optional[str] = Field(None, description='停牌原因')
-    halt_time: datetime = Field(..., description='停牌时间')
-    resume_time: Optional[datetime] = Field(None, description='恢复交易时间')
-    price: Optional[float] = Field(None, description='停牌前价格')
-    volume: Optional[int] = Field(None, description='停牌前成交量')
-    source: Optional[str] = Field(None, description='数据来源')
-    url: Optional[str] = Field(None, description='原始链接')
-
-
-class HaltInfoResponse(BaseModel):
-    """停牌信息响应模型"""
-    id: int
-    market: str
-    symbol: str
-    company_name: Optional[str]
-    halt_type: Optional[str]
-    halt_reason: Optional[str]
-    halt_time: datetime
-    resume_time: Optional[datetime]
-    price: Optional[float]
-    volume: Optional[int]
-    source: Optional[str]
-    url: Optional[str]
-    created_at: datetime
-    updated_at: datetime
-    is_active: bool
+    def to_csv_row(self) -> str:
+        """转换为CSV格式"""
+        resume_str = self.resume_date.strftime('%Y-%m-%d') if self.resume_date else ''
+        return f"{self.market}｜{self.fetch_time.strftime('%Y-%m-%d %H:%M:%S')}｜{self.symbol}｜{self.company_name}｜{self.halt_date.strftime('%Y-%m-%d')}｜{resume_str}"
     
-    class Config:
-        from_attributes = True
-
-
-class HaltInfoFilter(BaseModel):
-    """停牌信息过滤模型"""
-    market: Optional[str] = Field(None, description='市场代码')
-    symbol: Optional[str] = Field(None, description='股票代码')
-    halt_type: Optional[str] = Field(None, description='停牌类型')
-    start_date: Optional[datetime] = Field(None, description='开始日期')
-    end_date: Optional[datetime] = Field(None, description='结束日期')
-    is_active: Optional[bool] = Field(None, description='是否有效')
-    limit: int = Field(100, description='返回数量限制')
-    offset: int = Field(0, description='偏移量')
+    def to_dict(self) -> dict:
+        """转换为字典格式"""
+        return {
+            'market': self.market,
+            'fetch_time': self.fetch_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'symbol': self.symbol,
+            'company_name': self.company_name,
+            'halt_date': self.halt_date.strftime('%Y-%m-%d'),
+            'resume_date': self.resume_date.strftime('%Y-%m-%d') if self.resume_date else ''
+        }
