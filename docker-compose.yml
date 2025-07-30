@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # 主应用服务
+  app:
+    build: .
+    container_name: global_market_halt_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    environment:
+      - PYTHONPATH=/app
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+    command: python src/main.py api --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+
+  # 爬虫服务
+  crawler:
+    build: .
+    container_name: global_market_halt_crawler
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    environment:
+      - PYTHONPATH=/app
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+    command: python src/main.py crawl --market all
+    restart: unless-stopped
+
+  # 定时任务服务
+  scheduler:
+    build: .
+    container_name: global_market_halt_scheduler
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    environment:
+      - PYTHONPATH=/app
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+    command: python src/main.py scheduler
+    restart: unless-stopped
+
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: global_market_halt_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: global_market_halt
+      MYSQL_USER: market_halt
+      MYSQL_PASSWORD: market_halt_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./config/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: global_market_halt_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # MongoDB数据库
+  mongodb:
+    image: mongo:6
+    container_name: global_market_halt_mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: market_halt_raw
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  # Flower监控 (Celery任务监控)
+  flower:
+    build: .
+    container_name: global_market_halt_flower
+    ports:
+      - "5555:5555"
+    environment:
+      - PYTHONPATH=/app
+    depends_on:
+      - redis
+    command: celery -A src.services.celery_app flower --port=5555
+    restart: unless-stopped
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: global_market_halt_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
+  mongodb_data:

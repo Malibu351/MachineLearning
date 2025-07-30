@@ -1,0 +1,161 @@
+# GlobalMarketHalt 配置文件
+
+# 数据库配置
+database:
+  # 主数据库 (MySQL/PostgreSQL)
+  main:
+    type: mysql  # mysql, postgresql, sqlite
+    host: localhost
+    port: 3306
+    username: root
+    password: password
+    database: global_market_halt
+    charset: utf8mb4
+    
+  # MongoDB (用于存储原始数据)
+  mongodb:
+    host: localhost
+    port: 27017
+    database: market_halt_raw
+    username: ""
+    password: ""
+    
+  # Redis (缓存和消息队列)
+  redis:
+    host: localhost
+    port: 6379
+    password: ""
+    db: 0
+
+# 爬虫配置
+crawler:
+  # 请求配置
+  request:
+    timeout: 30
+    retry_times: 3
+    retry_delay: 5
+    user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    
+  # 反爬虫配置
+  anti_crawler:
+    enable_proxy: false
+    proxy_list: []
+    random_delay: true
+    delay_range: [1, 5]
+    
+  # 并发配置
+  concurrent:
+    max_workers: 5
+    max_requests_per_second: 2
+
+# 市场配置
+markets:
+  # 美股配置
+  us:
+    enabled: true
+    name: "美国股市"
+    timezone: "America/New_York"
+    trading_hours:
+      premarket: "04:00-09:30"
+      regular: "09:30-16:00"
+      aftermarket: "16:00-20:00"
+    data_sources:
+      - name: "FINRA"
+        url: "https://www.finra.org/finra-data/otc/equity/otc-halts"
+        type: "api"
+      - name: "NASDAQ"
+        url: "https://www.nasdaq.com/market-activity/halts"
+        type: "web"
+        
+  # 港股配置
+  hk:
+    enabled: true
+    name: "香港股市"
+    timezone: "Asia/Hong_Kong"
+    trading_hours:
+      premarket: "09:00-09:30"
+      regular: "09:30-12:00,13:00-16:00"
+    data_sources:
+      - name: "港交所"
+        url: "https://www.hkexnews.hk/APP/SEHK/2024/2024010100000/SEHK2024010100000_C.pdf"
+        type: "pdf"
+        
+  # A股配置
+  cn:
+    enabled: true
+    name: "中国股市"
+    timezone: "Asia/Shanghai"
+    trading_hours:
+      premarket: "09:15-09:25"
+      regular: "09:30-11:30,13:00-15:00"
+    data_sources:
+      - name: "上交所"
+        url: "http://www.sse.com.cn/disclosure/dealinstruc/halt/"
+        type: "web"
+      - name: "深交所"
+        url: "http://www.szse.cn/disclosure/dealinstruc/halt/"
+        type: "web"
+
+# 通知配置
+notifications:
+  # 邮件通知
+  email:
+    enabled: false
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    username: "your-email@gmail.com"
+    password: "your-password"
+    recipients: ["admin@example.com"]
+    
+  # 钉钉通知
+  dingtalk:
+    enabled: false
+    webhook_url: "https://oapi.dingtalk.com/robot/send?access_token=your-token"
+    
+  # 企业微信通知
+  wechat:
+    enabled: false
+    webhook_url: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=your-key"
+
+# 日志配置
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} | {message}"
+  file: "logs/global_market_halt.log"
+  max_size: "100 MB"
+  rotation: "1 day"
+  retention: "30 days"
+
+# API配置
+api:
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+  cors_origins: ["*"]
+  
+# 定时任务配置
+scheduler:
+  # 盘前爬取任务
+  premarket_crawl:
+    enabled: true
+    cron: "0 4 * * 1-5"  # 工作日早上4点
+    markets: ["us", "hk", "cn"]
+    
+  # 数据清理任务
+  data_cleanup:
+    enabled: true
+    cron: "0 2 * * *"  # 每天凌晨2点
+    retention_days: 30
+
+# 数据存储配置
+storage:
+  # 数据格式
+  format: "json"  # json, csv, parquet
+  
+  # 压缩
+  compression: "gzip"
+  
+  # 分区策略
+  partitioning:
+    enabled: true
+    by: ["date", "market"]  # 按日期和市场分区
