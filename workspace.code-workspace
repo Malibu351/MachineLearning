@@ -1,0 +1,31 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "terminal.integrated.cwd": "${workspaceFolder}",
+        "python.terminal.activateEnvironment": true,
+        "python.defaultInterpreterPath": "python3",
+        "files.exclude": {
+            "**/.git": true,
+            "**/.DS_Store": true,
+            "**/__pycache__": true,
+            "**/*.pyc": true
+        },
+        "search.exclude": {
+            "**/.git": true,
+            "**/node_modules": true,
+            "**/bower_components": true,
+            "**/*.code-search": true
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.vscode-pylance",
+            "ms-vscode.vscode-json"
+        ]
+    }
+}
